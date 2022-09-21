@@ -73,7 +73,6 @@ class Teilnehmer(tk.Tk):
         self.destroy()
 
 
-
 if __name__ == "__main__" :
 
     app = Teilnehmer()

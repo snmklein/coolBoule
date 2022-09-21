@@ -18,7 +18,7 @@ import pandas as pd
 from random import randint
 from teilnehmer import Teilnehmer
 from paarungen import Paarungen
-
+from tabelle import Tabelle
 
 def random_result( res) :
     """ Ermittle ein Boule-Zufallsergebnis, wenn noch keines eingetragen ist """
@@ -38,6 +38,7 @@ class BouleApp:
         self.count = 100
         self.idx_runde = 0
         self.paarungen = Paarungen(8)
+        self.tab = Tabelle()
 
         self.mainFrame = Frame(parent)
         self.master = parent
@@ -87,9 +88,9 @@ class BouleApp:
     def insert_rframe(self) :
         # self.lframe.pack( side=LEFT)
         self.rframe.grid(row=0,column=1, sticky="nswe")
-        rtitle=Label(self.rframe,
+        self.rtitle=Label(self.rframe,
                      text="Ergenisse Runde {}".format(self.idx_runde+1))
-        rtitle.pack()
+        self.rtitle.pack()
         # ltitle.grid(row = 0, column = 0, sticky = "nswe")
         self.erg_sheet = Sheet( self.rframe, # data = [[1,2],[3,4],[5,6]])
                                data =
@@ -139,12 +140,24 @@ class BouleApp:
         self.menu.add_cascade(label="Ergebnisse", menu=erg)
         erg.add_command( label="Eingeben", command=self.erg_edit)
         erg.add_command( label="Speichern", command=self.erg_save)
-
+        erg.add_command( label="In Tabelle eintragen",
+                         command=self.insert_last_erg)
+        erg.add_command( label="Ergebnisse löschen",
+                         command=self.erg_clear)
+        erg.add_command( label="Nächste Runde",command=self.erg_nxtround)
 
     def submit(self) :
         self.count += 1
         messagebox.showinfo( "Information",
                              "Aktueller Zählerstand: {} ".format( self.count))
+
+    def erg_insert_paarungen(self) :
+        pairlst = self.paarungen.get_round(self.idx_runde)
+        t1 = [self.df['Name'][x-1] for x in pairlst[0]]
+        t2 = [self.df['Name'][x-1] for x in pairlst[1]]
+        self.erg_sheet.set_column_data(1,values=tuple(t1),redraw=True)
+        self.erg_sheet.set_column_data(4,values=tuple(t2),redraw=True)
+
 
     def insert_df( self) :
         if not self.df.empty :
@@ -153,15 +166,7 @@ class BouleApp:
             self.tn_sheet.set_column_data(1, values=tuple(self.df['Name']),
                                           redraw=True)
             self.tn_sheet.refresh()
-
-            pairlst = self.paarungen.get_round(self.idx_runde)
-            print(pairlst)
-            t1 = [self.df['Name'][x-1] for x in pairlst[0]]
-            print(t1)
-            t2 = [self.df['Name'][x-1] for x in pairlst[1]]
-            print(t2)
-            self.erg_sheet.set_column_data(1,values=tuple(t1),redraw=True)
-            self.erg_sheet.set_column_data(4,values=tuple(t2),redraw=True)
+            self.erg_insert_paarungen()
 
         self.count += 20
         
@@ -187,6 +192,30 @@ class BouleApp:
         print(pges)
         ergebnis=list(zip(pges,eges))
         print(ergebnis)
+        self.last_erg = ergebnis
+
+    def erg_clear(self):
+        """ Loeschen der Ergebnisspalte """
+        self.erg_sheet.set_column_data(2, values=4 * [0], redraw=True)
+        self.erg_sheet.set_column_data(3, values=4*[0], redraw=True)
+
+    def erg_nxtround(self):
+        self.idx_runde +=1
+        self.rtitle.config(text="Ergenisse Runde {}".format(self.idx_runde+1))
+        self.erg_insert_paarungen()
+        self.erg_clear()
+        
+    def insert_last_erg( self) :
+        self.tab.ins_reslst( self.last_erg)
+        self.tn_sheet.set_column_data(0, values=tuple(self.tab.tab.index),
+                                          redraw=True)
+        self.tn_sheet.set_column_data(1,
+                                      values=[self.df['Name'][x-1] for x in self.tab.tab.index],
+                                      redraw=True)
+        self.tn_sheet.set_column_data(2, values=tuple(self.tab.tab['Siege']),
+                                      redraw=True)
+        self.tn_sheet.set_column_data(3, values=tuple(self.tab.tab['Punkte']),
+                                      redraw=True)
 
 root = Tk()
 boule = BouleApp(root)
